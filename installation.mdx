@@ -1,0 +1,75 @@
+---
+title: "Install Susee as a dev dependency in your project"
+description: "Add Susee to any Node.js package with npm, pnpm, or yarn, verify the binary is available, and confirm the TypeScript version requirement."
+keywords: ["susee", "install", "npm", "pnpm", "yarn", "setup", "dev dependency"]
+---
+
+Susee is published to npm as a single package. Install it as a dev dependency — it is only needed during your build step and should not be shipped as a runtime dependency.
+
+## Requirements
+
+- **Node.js**: a recent LTS release (the package uses ES modules and `node:` built-ins)
+- **TypeScript**: Susee depends on TypeScript 6.x (`typescript@^6.0.2`), which is bundled as a direct dependency — you do not need to install TypeScript separately
+
+<Info>
+  Because TypeScript 6 is a direct dependency of Susee, you do not need a separate `typescript` package in your own `devDependencies` unless you also want to run `tsc` directly.
+</Info>
+
+## Install
+
+<CodeGroup>
+
+```bash npm
+npm install -D susee
+```
+
+```bash pnpm
+pnpm add -D susee
+```
+
+```bash yarn
+yarn add -D susee
+```
+
+</CodeGroup>
+
+After installation, npm will link the `susee` binary into your project's `node_modules/.bin/` directory.
+
+## Verify the installation
+
+Run the following command to confirm the binary is accessible and check the available commands:
+
+```bash
+npx susee --help
+```
+
+You should see output similar to:
+
+```text
+Susee CLI.
+
+Usage:
+  susee                                 Build using susee.config.{ts,js,mjs}
+  susee init                            Generate susee.config.{ts,js,mjs}
+  susee --help                          Show this message
+  susee build <entry> [options]         Build from a single entry file
+```
+
+<Tip>
+  You can also invoke the binary directly from scripts in your `package.json` without the `npx` prefix, since npm adds `node_modules/.bin` to the PATH when running scripts:
+
+  ```json
+  {
+    "scripts": {
+      "build": "susee"
+    }
+  }
+  ```
+</Tip>
+
+## Next steps
+
+Once Susee is installed, generate a config file and run your first build:
+
+- [Quickstart](/quickstart) — end-to-end walkthrough from install to output files
+- [Configuration](/configuration/config-file) — full reference for `susee.config.ts` options

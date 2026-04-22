@@ -1,28 +1,11 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "name": "Susee",
+  "projectType": "cli-tool",
+  "projectName": "Susee",
+  "projectDescription": "A TypeScript-first bundler for library packages that supports both a CLI interface and a programmatic API.",
   "theme": "luma",
-  "colors": {
-    "primary": "#848c8e",
-    "light": "#11161e",
-    "dark": "#cfd0d2"
-  },
-  "favicon": "https://media.brand.dev/2b01fe20-c04b-4a1d-a2f9-1d2789c50a7a.jpg",
-  "logo": {
-    "light": "https://media.brand.dev/5ffd6ce4-2434-4b4b-920a-f8cacac8b48b.svg",
-    "dark": "https://media.brand.dev/5ffd6ce4-2434-4b4b-920a-f8cacac8b48b.svg"
-  },
-  "navbar": {
-    "primary": {
-      "type": "github",
-      "href": "https://github.com/phothinmg/susee"
-    }
-  },
-  "footer": {
-    "socials": {
-      "github": "https://github.com/phothinmg/susee"
-    }
-  },
+  "primaryColor": "#848c8e",
+  "lightColor": "#11161e",
+  "darkColor": "#cfd0d2",
   "navigation": {
     "tabs": [
       {
@@ -76,5 +59,27 @@
         ]
       }
     ]
-  }
+  },
+  "keyFeatures": [
+    "TypeScript-first bundling with declaration file emission",
+    "ESM and CommonJS dual output support",
+    "CLI interface with susee, susee init, and susee build commands",
+    "Programmatic API via the build() function",
+    "Post-process plugin system",
+    "Automatic package.json field updates",
+    "Minification via terser plugin",
+    "Duplicate declaration auto-renaming",
+    "Config file discovery (susee.config.ts/js/mjs)",
+    "Sourcemap generation"
+  ],
+  "publicApiSurface": [
+    "build(options?: SuSeeConfig): Promise<void>",
+    "SuSeeConfig interface",
+    "EntryPoint interface",
+    "OutputFormat type",
+    "susee (CLI — build from config file)",
+    "susee init (CLI — generate config template)",
+    "susee build <entry> [options] (CLI — single-entry build)",
+    "--entry, --outdir, --format, --tsconfig, --rename, --allow-update, --minify, --warning (CLI flags)"
+  ]
 }

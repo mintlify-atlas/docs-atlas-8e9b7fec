@@ -1,0 +1,175 @@
+---
+title: 'Susee CLI Init: Generate a Config File'
+description: 'How susee init works — the interactive TypeScript prompt, how the output filename is chosen, and the TypeScript and JavaScript config templates it generates.'
+keywords: ['susee', 'cli', 'init', 'config', 'susee.config.ts', 'susee.config.js', 'susee.config.mjs', 'template']
+---
+
+`susee init` is the fastest way to get a Susee config file in your project. It asks one question, then writes a fully commented config template to your project root. This page explains how the command works and what the generated files look like.
+
+## Running the command
+
+```bash
+npx susee init
+```
+
+Susee prompts you interactively, then writes the config file.
+
+## How it works
+
+<Steps>
+  <Step title="Answer the TypeScript prompt">
+    Susee asks:
+
+    ```
+    Is TypeScript project(y/n) :
+    ```
+
+    Enter `y` (or `Y`) to confirm a TypeScript project, or `n` for JavaScript. Pressing Enter without typing anything also selects TypeScript.
+
+    <Tip>Pressing Enter at the prompt defaults to yes — no need to type `y`.</Tip>
+  </Step>
+
+  <Step title="Config filename is determined">
+    The output filename depends on your answer and, for JavaScript projects, the `type` field in your `package.json`:
+
+    | Answer | `package.json` `type` | Output file |
+    |---|---|---|
+    | `y`, `Y`, or Enter | — | `susee.config.ts` |
+    | `n` | `"module"` | `susee.config.js` |
+    | `n` | `"commonjs"` or absent | `susee.config.mjs` |
+
+    <Info>
+      For JavaScript projects, Susee reads `package.json` from the current working directory to detect the `type` field. Make sure `package.json` exists before running `susee init` if you plan to use JavaScript config.
+    </Info>
+  </Step>
+
+  <Step title="Config file is written">
+    Susee writes the template to your project root. If a config file with the same name already exists, it is deleted and recreated.
+
+    Susee confirms success with a message:
+
+    ```
+    Susee config file susee.config.ts is created at project root
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Generated templates
+
+<Tabs>
+  <Tab title="TypeScript (susee.config.ts)">
+    Generated when you answer `y`, `Y`, or press Enter.
+
+    ```typescript susee.config.ts
+    import type { SuSeeConfig } from "susee";
+
+    const config: SuSeeConfig = {
+      // Array of entry point objects.
+      // ----------------------------
+      entryPoints: [
+        // You can add more entry points for different export paths.
+        // NOTE: duplicate export paths are not allowed.
+        // --------------------------------------------
+        {
+          // (required) Entry file path.
+          entry: "src/index.ts", // replace with your entry file
+          // (required) Export path for this entry.
+          exportPath: ".", // "." stands for the main export path and can be set to "./foo", "./bar", etc.
+          // (optional) Output module formats ["commonjs"] or ["esm", "commonjs"], default: ["esm"].
+          // Uncomment the following line to edit.
+          //format: ["esm"],
+          // (optional) Rename duplicate declarations, default: true.
+          // Uncomment the following line to edit.
+          //renameDuplicates: true,
+          // (optional) Custom tsconfig.json path, default: undefined.
+          // Uncomment the following line to edit.
+          //tsconfigFilePath: undefined,
+          // (optional) Array of susee plugins, default: [].
+          // Uncomment the following line to edit.
+          //plugins: [],
+          // (optional) Warning messages, if it true and warning message exist(1), default: false.
+          // Uncomment the following line to edit.
+          //warning: false,
+        },
+      ],
+      // NOTE: the following options apply to all entry points.
+      // ----------------------------------------------------------
+      // (optional) Output directory, default: dist.
+      // Uncomment the following line to edit.
+      //outDir: "dist",
+      // (optional) Allow susee to update your package.json, default: false.
+      // Uncomment the following line to edit.
+      //allowUpdatePackageJson: false,
+    };
+
+    export default config;
+    ```
+  </Tab>
+  <Tab title="JavaScript (susee.config.js / .mjs)">
+    Generated when you answer `n`. The filename is `susee.config.js` for ESM projects (`"type": "module"`) and `susee.config.mjs` for CommonJS projects.
+
+    ```javascript susee.config.js
+    /**
+     * @type {import("susee").SuSeeConfig}
+     */
+    const config = {
+      // Array of entry point objects.
+      // ----------------------------
+      entryPoints: [
+        // You can add more entry points for different export paths.
+        // NOTE: duplicate export paths are not allowed.
+        // --------------------------------------------
+        {
+          // (required) Entry file path.
+          entry: "src/index.ts", // replace with your entry file
+          // (required) Export path for this entry.
+          exportPath: ".", // "." stands for the main export path and can be set to "./foo", "./bar", etc.
+          // (optional) Output module formats ["commonjs"] or ["esm", "commonjs"], default: ["esm"].
+          // Uncomment the following line to edit.
+          //format: ["esm"],
+          // (optional) Rename duplicate declarations, default: true.
+          // Uncomment the following line to edit.
+          //renameDuplicates: true,
+          // (optional) Custom tsconfig.json path, default: undefined.
+          // Uncomment the following line to edit.
+          //tsconfigFilePath: undefined,
+          // (optional) Array of susee plugins, default: [].
+          // Uncomment the following line to edit.
+          //plugins: [],
+          // (optional) Warning messages, if it true and warning message exist(1), default: false.
+          // Uncomment the following line to edit.
+          //warning: false,
+        },
+      ],
+      // NOTE: the following options apply to all entry points.
+      // ----------------------------------------------------------
+      // (optional) Output directory, default: dist.
+      // Uncomment the following line to edit.
+      //outDir: "dist",
+      // (optional) Allow susee to update your package.json, default: false.
+      // Uncomment the following line to edit.
+      //allowUpdatePackageJson: false,
+    };
+
+    export default config;
+    ```
+
+    <Note>
+      The JavaScript template uses a JSDoc `@type` annotation (`@type {import("susee").SuSeeConfig}`) to provide type hints in editors that support TypeScript-aware JavaScript, without requiring a `.ts` file.
+    </Note>
+  </Tab>
+</Tabs>
+
+---
+
+## Next steps
+
+After generating your config file, open it and update the `entry` and `exportPath` fields for your project, then run:
+
+```bash
+npx susee
+```
+
+See the [cli-build reference](/reference/cli-build) for the full list of options available when building from a config file or from a single entry point directly.

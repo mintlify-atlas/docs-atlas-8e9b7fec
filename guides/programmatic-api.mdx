@@ -1,0 +1,166 @@
+---
+title: 'Using the Susee Programmatic API to build packages'
+description: 'Learn how to call build() from TypeScript or JavaScript to compile your library without the CLI, including multi-entry and script-based workflows.'
+keywords: ['susee', 'programmatic api', 'build function', 'typescript bundler', 'library build']
+---
+
+Susee exposes a `build()` function you can call directly from TypeScript or JavaScript, giving you full control over build orchestration without the CLI. This page covers the function signature, resolution behavior, and common usage patterns.
+
+## Function signature
+
+```typescript
+async function build(options?: SuSeeConfig): Promise<void>
+```
+
+Import `build` and the `SuSeeConfig` type from the `susee` package:
+
+```typescript
+import { build, type SuSeeConfig } from "susee";
+```
+
+## Resolution behavior
+
+When you call `build()`, Susee resolves its configuration in this order:
+
+<Steps>
+  <Step title="Check for an inline options object">
+    If you pass an `options` argument, Susee uses it directly and skips config file discovery.
+  </Step>
+  <Step title="Discover a config file">
+    If `options` is omitted, Susee searches the project root for a config file in this priority order:
+    1. `susee.config.ts`
+    2. `susee.config.js`
+    3. `susee.config.mjs`
+  </Step>
+  <Step title="Exit on missing configuration">
+    If neither an inline options object nor a config file is found, Susee prints an error to stderr and exits with code `1`.
+  </Step>
+</Steps>
+
+<Note>
+  `build()` uses `console.time` internally, so it prints the total build duration to the console when it completes.
+</Note>
+
+## Basic usage
+
+Pass a `SuSeeConfig` object directly to `build()`:
+
+```typescript
+import { build, type SuSeeConfig } from "susee";
+
+const config: SuSeeConfig = {
+  entryPoints: [
+    {
+      entry: "src/index.ts",
+      exportPath: ".",
+      format: ["esm", "commonjs"],
+    },
+  ],
+  outDir: "dist",
+};
+
+await build(config);
+```
+
+## Build script
+
+A common pattern is to keep your build logic in a dedicated script file and invoke it via a package.json script.
+
+<CodeGroup>
+
+```typescript build.ts
+import { build, type SuSeeConfig } from "susee";
+
+const config: SuSeeConfig = {
+  entryPoints: [
+    {
+      entry: "src/index.ts",
+      exportPath: ".",
+      format: ["esm", "commonjs"],
+    },
+  ],
+  outDir: "dist",
+  allowUpdatePackageJson: true,
+};
+
+await build(config);
+```
+
+```json package.json
+{
+  "scripts": {
+    "build": "tsx build.ts"
+  }
+}
+```
+
+</CodeGroup>
+
+Run the build with:
+
+```bash
+npm run build
+```
+
+## Multi-entry usage
+
+When your package exposes multiple export paths, add an entry point object for each one. Each `exportPath` must be unique.
+
+```typescript
+import { build, type SuSeeConfig } from "susee";
+
+const config: SuSeeConfig = {
+  entryPoints: [
+    {
+      entry: "src/index.ts",
+      exportPath: ".",
+      format: ["esm", "commonjs"],
+    },
+    {
+      entry: "src/utils.ts",
+      exportPath: "./utils",
+      format: ["esm"],
+    },
+  ],
+  outDir: "dist",
+};
+
+await build(config);
+```
+
+This produces output in `dist/` for the main entry and `dist/utils/` for the subpath entry.
+
+## Calling build() without arguments
+
+If you omit `options`, Susee attempts to load a config file from the project root:
+
+```typescript
+import { build } from "susee";
+
+// Loads susee.config.ts / .js / .mjs from the current working directory
+await build();
+```
+
+<Warning>
+  If no config file exists and no options are passed, the process exits with code `1`. Run `npx susee init` to generate a config file.
+</Warning>
+
+## Config reference
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `entryPoints` | `EntryPoint[]` | required | One or more entry point descriptors |
+| `outDir` | `string` | `"dist"` | Root output directory |
+| `allowUpdatePackageJson` | `boolean` | `false` | Let Susee update `package.json` fields after building |
+
+### EntryPoint fields
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `entry` | `string` | required | Path to the source entry file |
+| `exportPath` | `"." \| "./..."` | required | Export path in the package manifest |
+| `format` | `("esm" \| "commonjs")[]` | `["esm"]` | Output module format(s) |
+| `tsconfigFilePath` | `string` | `undefined` | Custom tsconfig path; falls back to root tsconfig then Susee defaults |
+| `renameDuplicates` | `boolean` | `true` | Auto-rename duplicate declarations during bundling |
+| `plugins` | `(SuseePlugin \| SuseePluginFunction)[]` | `[]` | Post-process plugins to run after compilation |
+| `warning` | `boolean` | `false` | Enable bundler warnings |

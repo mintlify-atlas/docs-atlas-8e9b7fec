@@ -1,97 +1,96 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Susee: Bundle TypeScript libraries to ESM and CommonJS"
+description: "Susee bundles TypeScript library packages to ESM and CommonJS with declaration files, sourcemaps, and a plugin system — via CLI or programmatic API."
 ---
 
-## Setting up
+Susee is a TypeScript-first bundler built specifically for library package authors. It compiles and bundles your TypeScript source into dual ESM/CommonJS outputs, emits `.d.mts`/`.d.cts` declaration files, generates sourcemaps, and can automatically update your `package.json` fields — all from a single config file or one CLI command.
 
-Get your documentation site up and running in minutes.
-
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Add Susee to your project with npm, pnpm, or yarn in seconds.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Generate a config file and build your first library package output.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Configuration reference" icon="sliders" href="/configuration/config-file">
+    Explore every option in `susee.config.ts` and the full config schema.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="CLI reference" icon="terminal" href="/reference/cli-overview">
+    Every command, flag, and default value for the Susee CLI.
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## Two ways to use Susee
 
-Everything you need to create world-class documentation.
+Susee can be used as a CLI tool or as a Node.js library — pick the approach that fits your workflow.
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+<Tabs>
+  <Tab title="CLI">
+    Initialize a config file, then build:
 
-## Need inspiration?
+    ```bash
+    npx susee init
+    npx susee
+    ```
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+    Or build a single entry directly without a config file:
+
+    ```bash
+    npx susee build src/index.ts --format esm --outdir dist
+    ```
+  </Tab>
+  <Tab title="Programmatic API">
+    Import `build` and pass a config object directly from your build script:
+
+    ```typescript
+    import { build, type SuSeeConfig } from "susee";
+
+    const config: SuSeeConfig = {
+      entryPoints: [
+        {
+          entry: "src/index.ts",
+          exportPath: ".",
+          format: ["esm", "commonjs"],
+        },
+      ],
+      outDir: "dist",
+    };
+
+    await build(config);
+    ```
+  </Tab>
+</Tabs>
+
+## Key features
+
+<CardGroup cols={2}>
+  <Card title="Dual format output" icon="files">
+    Produce both ESM (`.mjs`) and CommonJS (`.cjs`) from a single source, with matching sourcemaps and declaration files.
+  </Card>
+  <Card title="TypeScript declarations" icon="file-code">
+    Automatically emits `.d.mts` and `.d.cts` type declaration files alongside compiled output.
+  </Card>
+  <Card title="Post-process plugins" icon="plug">
+    Extend the build pipeline with custom post-process plugins, including the built-in terser minification plugin.
+  </Card>
+  <Card title="package.json updates" icon="file">
+    Optionally let Susee update `main`, `module`, and `types` fields in your `package.json` based on build output.
+  </Card>
+</CardGroup>
+
+## Get started in four steps
+
+<Steps>
+  <Step title="Install Susee">
+    Add Susee as a dev dependency: `npm install -D susee`
+  </Step>
+  <Step title="Initialize your config">
+    Run `npx susee init` to create a `susee.config.ts` template at your project root.
+  </Step>
+  <Step title="Configure entry points">
+    Edit `susee.config.ts` to specify your entry files, export paths, and output formats.
+  </Step>
+  <Step title="Build your library">
+    Run `npx susee` to compile and bundle your library into the `dist/` directory.
+  </Step>
+</Steps>

@@ -1,0 +1,160 @@
+---
+title: 'Susee CLI Build Commands: Config and Entry Builds'
+description: 'Complete reference for `susee` (config-driven build) and `susee build <entry>` (one-off build). Covers all flags, defaults, and practical examples.'
+keywords: ['susee', 'cli', 'build', 'entry', 'outdir', 'format', 'minify', 'tsconfig', 'flags']
+---
+
+Susee provides two ways to build from the CLI: a config-driven build invoked by running `npx susee` with no arguments, and a one-off build using `susee build <entry> [options]`. This page covers both commands in full.
+
+---
+
+## `susee` — config-driven build
+
+Running `npx susee` with no arguments reads your project's config file and builds all entry points defined in it.
+
+**Config file lookup order** (project root):
+
+1. `susee.config.ts`
+2. `susee.config.js`
+3. `susee.config.mjs`
+
+If a config file is found, Susee compiles every entry point and prints the elapsed build time using `console.time`. If no config file is found, Susee prints an error message and exits with code `1`.
+
+<Note>
+  To generate a config file, run `npx susee init`. See the [susee init reference](/reference/cli-init) for details.
+</Note>
+
+---
+
+## `susee build <entry> [options]` — one-off build
+
+`susee build` bundles a single entry file using CLI flags. No config file is required.
+
+Running `susee build` with no entry argument (or with `--help` / `-h`) prints the help message.
+
+### Entry point
+
+<ParamField path="entry" type="string" required>
+  Path to the entry file. Must have a recognized extension: `.ts`, `.js`, `.mts`, `.mjs`, `.cjs`, or `.cts`.
+
+  You can supply the entry as a positional argument or via `--entry`. If you provide both, they must not conflict — Susee exits with an error if two different entry paths are given.
+
+  ```bash
+  # Positional
+  npx susee build src/index.ts
+
+  # Named flag
+  npx susee build --entry src/index.ts
+  ```
+</ParamField>
+
+### Options
+
+<ParamField query="--entry" type="string">
+  Alternative way to specify the entry file path. Equivalent to the positional `<entry>` argument. An error is raised if both a positional entry and `--entry` are provided and they differ.
+</ParamField>
+
+<ParamField query="--outdir" type="string" default="dist">
+  Output directory for the build artifacts.
+
+  ```bash
+  npx susee build src/index.ts --outdir lib
+  ```
+</ParamField>
+
+<ParamField query="--format" type="cjs | commonjs | esm" default="esm">
+  Output module format. `cjs` is an alias for `commonjs` — both produce CommonJS output. Accepted values: `esm`, `commonjs`, `cjs`.
+
+  ```bash
+  npx susee build src/index.ts --format commonjs
+  ```
+</ParamField>
+
+<ParamField query="--tsconfig" type="string">
+  Path to a custom `tsconfig.json`. When omitted, Susee uses the `tsconfig.json` at your project root if one exists.
+
+  ```bash
+  npx susee build src/index.ts --tsconfig tsconfig.build.json
+  ```
+</ParamField>
+
+<ParamField query="--rename" type="boolean" default="true">
+  Rename duplicate declarations in the output. Pass `--rename=false` to disable.
+
+  ```bash
+  npx susee build src/index.ts --rename=false
+  ```
+</ParamField>
+
+<ParamField query="--allow-update" type="boolean" default="false">
+  When enabled, Susee updates relevant fields in your `package.json` (such as `main`, `module`, and `types`) based on the build output. Pass `--allow-update` or `--allow-update=true` to enable.
+
+  ```bash
+  npx susee build src/index.ts --allow-update
+  ```
+</ParamField>
+
+<ParamField query="--minify" type="boolean" default="false">
+  Minify the output using terser. Pass `--minify` or `--minify=true` to enable.
+
+  ```bash
+  npx susee build src/index.ts --minify
+  ```
+</ParamField>
+
+<ParamField query="--warning" type="boolean" default="false">
+  Enable bundler warning messages. Pass `--warning` or `--warning=true` to enable.
+
+  ```bash
+  npx susee build src/index.ts --warning
+  ```
+</ParamField>
+
+### Boolean flag syntax
+
+The `--rename`, `--allow-update`, `--minify`, and `--warning` flags accept an optional value. All three forms below are equivalent:
+
+```bash
+# Enable (all equivalent)
+--minify
+--minify=true
+--minify true
+
+# Disable
+--minify=false
+--minify false
+```
+
+<Warning>
+  Using `--flag value` (space-separated) only works when the value is exactly `true` or `false`. Any other following token is treated as the next positional argument.
+</Warning>
+
+---
+
+## Examples
+
+```bash
+# Build from config file
+npx susee
+
+# One-off builds
+npx susee build src/index.ts --outdir dist
+npx susee build src/index.ts --format commonjs
+npx susee build --entry src/index.ts --format esm --minify
+npx susee build src/index.ts --format esm --outdir dist --rename=false
+npx susee build src/index.ts --allow-update --outdir dist
+```
+
+---
+
+## Default values summary
+
+| Flag | Default |
+|---|---|
+| `--outdir` | `dist` |
+| `--format` | `esm` |
+| `--tsconfig` | `undefined` (uses root `tsconfig.json` if present) |
+| `--rename` | `true` |
+| `--allow-update` | `false` |
+| `--minify` | `false` |
+| `--warning` | `false` |

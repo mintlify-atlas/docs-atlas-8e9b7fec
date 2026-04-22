@@ -1,0 +1,117 @@
+---
+title: "build() — Susee programmatic API function"
+description: "Reference for the build() function exported by susee. Accepts an optional SuSeeConfig object and compiles all entry points to the configured output directory."
+---
+
+The `build` function is the single programmatic entry point exported by Susee. Call it from any Node.js script or build tool to compile and bundle your library packages without using the CLI.
+
+## Signature
+
+```typescript
+async function build(options?: SuSeeConfig): Promise<void>
+```
+
+## Parameters
+
+<ParamField path="options" type="SuSeeConfig" optional>
+  Configuration object describing entry points, output directory, and package.json update behavior. When omitted, Susee loads `susee.config.ts`, `susee.config.js`, or `susee.config.mjs` from the current working directory. If both `options` and a config file are absent, Susee prints an error and exits with code `1`.
+</ParamField>
+
+## Return value
+
+Returns `Promise<void>`. Susee prints elapsed build time to stdout via `console.time` on completion.
+
+## Resolution behavior
+
+When `build()` is called, Susee resolves options in this order:
+
+1. **Inline options** — if `options` is provided, it is used directly (no config file is read)
+2. **Config file** — if `options` is omitted, Susee searches for `susee.config.ts`, `susee.config.js`, then `susee.config.mjs` in the current working directory
+3. **Error** — if neither source is available, Susee prints an error message and calls `process.exit(1)`
+
+<Note>
+  Passing `options` bypasses config file discovery entirely. To use a config file programmatically, omit the argument.
+</Note>
+
+## Usage examples
+
+### Basic usage
+
+```typescript build.ts
+import { build, type SuSeeConfig } from "susee";
+
+const config: SuSeeConfig = {
+  entryPoints: [
+    {
+      entry: "src/index.ts",
+      exportPath: ".",
+      format: ["esm", "commonjs"],
+    },
+  ],
+  outDir: "dist",
+};
+
+await build(config);
+```
+
+### Rely on config file
+
+Call `build()` with no arguments to load `susee.config.ts` from the project root:
+
+```typescript build.ts
+import { build } from "susee";
+
+await build();
+```
+
+### Multi-entry build
+
+```typescript build.ts
+import { build, type SuSeeConfig } from "susee";
+
+const config: SuSeeConfig = {
+  entryPoints: [
+    {
+      entry: "src/index.ts",
+      exportPath: ".",
+      format: ["esm", "commonjs"],
+    },
+    {
+      entry: "src/utils.ts",
+      exportPath: "./utils",
+      format: ["esm"],
+    },
+  ],
+  outDir: "dist",
+  allowUpdatePackageJson: true,
+};
+
+await build(config);
+```
+
+### Use in package.json scripts
+
+```json package.json
+{
+  "scripts": {
+    "build": "tsx build.ts"
+  },
+  "devDependencies": {
+    "susee": "^1.5.2",
+    "tsx": "^4.0.0"
+  }
+}
+```
+
+## Error handling
+
+`build()` does not throw — validation errors and missing-config errors call `process.exit(1)` after printing a message to stderr. The process terminates before `build()` returns, so there is nothing to catch. Ensure your config is valid before calling `build()` to avoid unexpected exits.
+
+## Imports
+
+```typescript
+import { build } from "susee";           // function
+import type { SuSeeConfig } from "susee"; // type only
+```
+
+Both the function and the type are the only public exports from the `susee` package.

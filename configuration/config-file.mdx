@@ -1,0 +1,134 @@
+---
+title: 'Susee Config File: SuSeeConfig Interface Reference'
+description: 'Learn how Susee discovers and loads your config file, and see a full reference for all top-level SuSeeConfig options with examples in TypeScript and JavaScript.'
+keywords: ['susee', 'config file', 'susee.config.ts', 'SuSeeConfig', 'configuration', 'bundler']
+---
+
+Susee reads a configuration file from your project root to determine what to bundle and where to write output. This page covers how Susee discovers that file, what happens when none is found, and documents every top-level option in the `SuSeeConfig` interface.
+
+## Supported config filenames
+
+Susee checks for these three filenames **in order** from your project root:
+
+1. `susee.config.ts`
+2. `susee.config.js`
+3. `susee.config.mjs`
+
+The first file found is used. If none exists when you run `susee`, the process prints an error and exits with code `1`.
+
+<Warning>
+  Running `susee` without a config file and without passing programmatic options causes an immediate exit with code `1`. Run `npx susee init` to generate a starter config.
+</Warning>
+
+## Generating a config file
+
+Use the `init` command to create a config template. Susee will prompt whether the project uses TypeScript and write the appropriate file.
+
+<Steps>
+  <Step title="Run the init command">
+    ```bash
+    npx susee init
+    ```
+  </Step>
+  <Step title="Answer the TypeScript prompt">
+    Enter `y` for a `susee.config.ts` file, or `n` for a `susee.config.js` / `susee.config.mjs` file (chosen based on your `package.json` `type` field).
+  </Step>
+  <Step title="Edit the generated file">
+    Open the file at your project root and fill in your entry points and options.
+  </Step>
+</Steps>
+
+## Complete examples
+
+<CodeGroup>
+
+```typescript susee.config.ts
+import type { SuSeeConfig } from "susee";
+
+const config: SuSeeConfig = {
+  entryPoints: [
+    {
+      entry: "src/index.ts",
+      exportPath: ".",
+      format: ["esm", "commonjs"],
+    },
+  ],
+  outDir: "dist",
+  allowUpdatePackageJson: false,
+};
+
+export default config;
+```
+
+```javascript susee.config.mjs
+/**
+ * @type {import("susee").SuSeeConfig}
+ */
+const config = {
+  entryPoints: [
+    {
+      entry: "src/index.ts",
+      exportPath: ".",
+      format: ["esm", "commonjs"],
+    },
+  ],
+  outDir: "dist",
+  allowUpdatePackageJson: false,
+};
+
+export default config;
+```
+
+</CodeGroup>
+
+<Tip>
+  When using a `.mjs` or `.js` config file, the JSDoc `@type` annotation gives you type-checking and editor autocompletion without requiring TypeScript.
+</Tip>
+
+## SuSeeConfig options
+
+<ParamField path="entryPoints" type="EntryPoint[]" required>
+  Array of entry point objects defining what source files to bundle and how. At least one entry is required — Susee exits with code `1` if the array is empty.
+
+  Each object in the array configures a single bundle target. See [Entry points](/configuration/entry-points) for the full `EntryPoint` reference.
+</ParamField>
+
+<ParamField path="outDir" type="string" default="dist">
+  Root output directory for all built files. When not set, Susee writes output to `dist` relative to the project root.
+
+  For subpath exports (e.g. `exportPath: "./utils"`), the output is placed inside a subdirectory of `outDir`. See [Output formats](/configuration/output-formats) for details on directory structure.
+</ParamField>
+
+<ParamField path="allowUpdatePackageJson" type="boolean" default="false">
+  When `true`, Susee updates the `main`, `module`, and `types` fields in your `package.json` after a successful build. The values are derived from the generated output paths.
+
+  Requires a `package.json` file to exist in the project root. When disabled, `package.json` is left unchanged.
+</ParamField>
+
+## Validation
+
+Susee validates your config before building. The following conditions all cause an exit with code `1`:
+
+<AccordionGroup>
+  <Accordion title="No entry points provided">
+    The `entryPoints` array must contain at least one item. An empty array causes:
+
+    ```
+    No entry found in susee.config file or build options, at least one entry required
+    ```
+  </Accordion>
+  <Accordion title="Duplicate exportPath values">
+    Each entry point must have a unique `exportPath`. Duplicate values cause:
+
+    ```
+    Duplicate export paths/path ("./foo") found in your susee.config file or build options, that will error for bundled output
+    ```
+  </Accordion>
+  <Accordion title="Entry file does not exist">
+    Each `entry` path must resolve to an existing file on disk. A missing file causes:
+
+    ```
+    Entry file src/index.ts dose not exists.
+    ```
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,97 @@
+---
+title: "Susee — TypeScript-first bundler for library packages"
+description: "Learn what Susee is, why it was built, and how its CLI and programmatic API help you ship dual ESM/CommonJS library packages with full TypeScript support."
+keywords: ["susee", "bundler", "typescript", "library", "esm", "commonjs", "declarations"]
+---
+
+Susee is a TypeScript-first bundler designed specifically for library package authors. It takes your TypeScript source, compiles it, and produces dual ESM and CommonJS outputs — complete with sourcemaps, declaration files, and optional `package.json` field updates — from a single config file or one CLI command.
+
+## Why Susee exists
+
+Publishing a TypeScript library that works correctly for both ESM and CommonJS consumers requires emitting multiple formats, keeping declaration files in sync, and managing `package.json` fields like `main`, `module`, and `types`. Doing this manually with separate tools is repetitive and error-prone. Susee bundles all of that into one tool with a minimal config surface.
+
+## Key features
+
+<CardGroup cols={2}>
+  <Card title="Dual ESM/CommonJS output" icon="files">
+    Produce `.mjs` (ESM) and `.cjs` (CommonJS) files from a single source entry, with matching `.mjs.map` and `.cjs.map` sourcemaps.
+  </Card>
+  <Card title="TypeScript declaration emission" icon="file-code">
+    Automatically emits `.d.mts` and `.d.cts` type declaration files alongside compiled output so consumers get full type information.
+  </Card>
+  <Card title="Sourcemap generation" icon="map">
+    Every output file ships with a sourcemap, making it straightforward to debug compiled library code back to the original TypeScript source.
+  </Card>
+  <Card title="Plugin system" icon="plug">
+    Extend the build pipeline with custom post-process plugins. The `@suseejs/terser-plugin` is available for minification, and you can write your own.
+  </Card>
+  <Card title="package.json auto-update" icon="file">
+    Enable `allowUpdatePackageJson` to let Susee write the correct `main`, `module`, and `types` fields to your `package.json` after each build.
+  </Card>
+  <Card title="Config or CLI" icon="terminal">
+    Use a `susee.config.ts` file for repeatable builds, or pass everything as CLI flags for one-off builds — no config file required.
+  </Card>
+</CardGroup>
+
+## Two ways to use Susee
+
+### CLI
+
+The `susee` binary covers three commands:
+
+| Command | Purpose |
+| --- | --- |
+| `susee` | Build using `susee.config.ts` (or `.js` / `.mjs`) found in your project root |
+| `susee init` | Generate a config template at your project root |
+| `susee build <entry> [options]` | Build a single entry file directly from CLI arguments |
+
+```bash
+# Generate config, then build
+npx susee init
+npx susee
+
+# One-off build without a config file
+npx susee build src/index.ts --outdir dist --format esm
+```
+
+### Programmatic API
+
+Import `build` from `susee` and pass a `SuSeeConfig` object directly. Useful when you want to drive builds from a custom script or integrate Susee into a larger pipeline.
+
+```typescript
+import { build, type SuSeeConfig } from "susee";
+
+const config: SuSeeConfig = {
+  entryPoints: [
+    {
+      entry: "src/index.ts",
+      exportPath: ".",
+      format: ["esm", "commonjs"],
+    },
+  ],
+  outDir: "dist",
+};
+
+await build(config);
+```
+
+<Note>
+  If you call `build()` without arguments and no config file is found in the project root, Susee prints an error and exits with code `1`.
+</Note>
+
+## Get started
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Add Susee as a dev dependency using npm, pnpm, or yarn.
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Walk through a complete end-to-end build from install to output files.
+  </Card>
+  <Card title="Configuration" icon="sliders" href="/configuration/config-file">
+    Explore every option in `susee.config.ts` and the full config schema.
+  </Card>
+  <Card title="CLI reference" icon="terminal" href="/reference/cli-overview">
+    Every command, flag, and default value for the Susee CLI.
+  </Card>
+</CardGroup>

@@ -1,0 +1,53 @@
+---
+title: 'Susee CLI Reference: All Commands Overview'
+description: 'A guide to every Susee CLI command — build from config, one-off builds, config generation, and help. Start here to find the right command for your workflow.'
+keywords: ['susee', 'cli', 'command line', 'build', 'init', 'reference']
+---
+
+Susee ships with a small, focused CLI that covers the three common workflows for library builds: building from a config file, one-off entry-point builds, and config file generation. This page lists every available command and links to full documentation for the ones with options.
+
+## Available commands
+
+```txt
+susee                           Build using susee.config.{ts,js,mjs}
+susee init                      Generate susee.config.{ts,js,mjs}
+susee --help                    Show help message
+susee build <entry> [options]   Build from a single entry file
+```
+
+### `susee` (no arguments)
+
+Running `npx susee` with no arguments triggers a config-driven build. Susee looks for a config file in your project root in this order:
+
+1. `susee.config.ts`
+2. `susee.config.js`
+3. `susee.config.mjs`
+
+If a config file is found, Susee builds all entry points defined in it and prints the elapsed build time. If no config file is found, Susee prints an error and exits with code `1`.
+
+<Tip>Use `npx susee init` to generate a config file if you don't have one yet.</Tip>
+
+### `susee build <entry> [options]`
+
+`susee build` is the one-off build command. It lets you bundle a single entry file directly from CLI flags, without needing a config file. This is useful for quick experiments or CI pipelines where you don't want to maintain a config.
+
+Running `susee build` with no entry argument prints the help message.
+
+### `susee init`
+
+`susee init` runs an interactive prompt and writes a `susee.config.ts`, `susee.config.js`, or `susee.config.mjs` file to your project root. The file extension is chosen based on whether your project uses TypeScript and the `type` field in your `package.json`.
+
+### `susee --help`
+
+Prints the help message to stdout, then exits.
+
+## Command detail pages
+
+<CardGroup cols={2}>
+  <Card title="susee build" icon="hammer" href="/reference/cli-build">
+    Full flag reference for both the no-args config build and the `susee build <entry>` one-off command.
+  </Card>
+  <Card title="susee init" icon="file-plus" href="/reference/cli-init">
+    How `susee init` works, the interactive prompt, and the config templates it generates.
+  </Card>
+</CardGroup>

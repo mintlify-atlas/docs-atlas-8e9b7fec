@@ -1,0 +1,135 @@
+---
+title: 'Automatic package.json updates after a Susee build'
+description: 'Understand how allowUpdatePackageJson works, which fields Susee writes, and the before-and-after state of your package.json when the option is enabled.'
+keywords: ['susee', 'package.json', 'allowUpdatePackageJson', 'main', 'module', 'types', 'exports']
+---
+
+Susee can update your `package.json` automatically after a build so that `main`, `module`, and `types` point to the generated output files. This page explains when updates happen, which fields are written, and how to enable the feature.
+
+## Enabling updates
+
+Set `allowUpdatePackageJson: true` in your config, or pass `--allow-update` when using `susee build` from the CLI.
+
+<Tabs>
+  <Tab title="Config file">
+    ```typescript
+    import type { SuSeeConfig } from "susee";
+
+    const config: SuSeeConfig = {
+      entryPoints: [
+        {
+          entry: "src/index.ts",
+          exportPath: ".",
+          format: ["esm", "commonjs"],
+        },
+      ],
+      outDir: "dist",
+      allowUpdatePackageJson: true,
+    };
+
+    export default config;
+    ```
+  </Tab>
+  <Tab title="CLI">
+    ```bash
+    npx susee build src/index.ts --format esm --allow-update
+    ```
+  </Tab>
+  <Tab title="Programmatic API">
+    ```typescript
+    import { build, type SuSeeConfig } from "susee";
+
+    const config: SuSeeConfig = {
+      entryPoints: [
+        {
+          entry: "src/index.ts",
+          exportPath: ".",
+          format: ["esm", "commonjs"],
+        },
+      ],
+      allowUpdatePackageJson: true,
+    };
+
+    await build(config);
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+  Enabling this option modifies `package.json` in place. Make sure the file is committed to version control before running a build so you can review or revert any changes.
+</Warning>
+
+## What gets updated
+
+The fields Susee writes depend on the `exportPath` and the formats you build.
+
+### Package.json update matrix
+
+| Context | Condition | Updated fields | Example result |
+|---|---|---|---|
+| Main export build | `exportPath: "."` with ESM + CommonJS | `main`, `module` | `"main": "dist/index.cjs"`, `"module": "dist/index.mjs"` |
+| Main export build | `exportPath: "."` with declarations available | `types` | Set from the generated CommonJS declaration path |
+| Subpath export build | `exportPath: "./foo"` | `exports` (subpath mapping) | Currently remains `{}` |
+
+<Note>
+  Susee only writes `types` when the TypeScript compiler emits a declaration file. If your tsconfig does not have `declaration: true`, the `types` field will not be set.
+</Note>
+
+### Subpath exports
+
+When `exportPath` is a subpath like `"./utils"`, Susee calls `files.writePackageJson` with that path and targets the `exports` field. In the current implementation the subpath mapping remains `{}` rather than being populated. Main export builds (`exportPath: "."`) are the only context where field updates are fully applied.
+
+## Before and after example
+
+Starting from a minimal `package.json`:
+
+```json
+{
+  "name": "my-library",
+  "version": "1.0.0",
+  "type": "module"
+}
+```
+
+After running a build with `allowUpdatePackageJson: true` and `format: ["esm", "commonjs"]`:
+
+```json
+{
+  "name": "my-library",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.cts"
+}
+```
+
+The `types` field is set from the CommonJS declaration path when declarations are emitted by the compiler.
+
+## Requirements
+
+<CardGroup cols={2}>
+  <Card title="package.json in project root" icon="file">
+    Susee reads and writes the `package.json` in the current working directory. The file must exist before running the build.
+  </Card>
+  <Card title="declaration: true in tsconfig" icon="code">
+    Declaration files are only emitted when your TypeScript compiler configuration includes `declaration: true`. Without it, the `types` field will not be updated.
+  </Card>
+</CardGroup>
+
+## Disabling updates
+
+The default value of `allowUpdatePackageJson` is `false`. When disabled, Susee builds your package and writes output files without touching `package.json`.
+
+```typescript
+const config: SuSeeConfig = {
+  entryPoints: [
+    {
+      entry: "src/index.ts",
+      exportPath: ".",
+      format: ["esm", "commonjs"],
+    },
+  ],
+  // allowUpdatePackageJson defaults to false — package.json is left unchanged
+};
+```

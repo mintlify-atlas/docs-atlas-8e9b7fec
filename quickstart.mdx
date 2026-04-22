@@ -1,80 +1,143 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: "Get started with Susee"
+description: "Walk through installing Susee, generating a config file, and building your first dual-format library output with ESM, CommonJS, and declaration files."
 ---
 
-## Get started in three steps
+This guide walks you through a complete Susee workflow — from installation to inspecting your compiled output. By the end you'll have a working `dist/` directory with ESM and CommonJS builds, sourcemaps, and TypeScript declaration files.
 
-Get your documentation site running locally and make your first customization.
+<Steps>
+  <Step title="Install Susee">
+    Add Susee as a dev dependency in your project:
 
-### Step 1: Set up your local environment
+    <CodeGroup>
+      ```bash npm
+      npm install -D susee
+      ```
+      ```bash pnpm
+      pnpm add -D susee
+      ```
+      ```bash yarn
+      yarn add -D susee
+      ```
+    </CodeGroup>
+  </Step>
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+  <Step title="Initialize your config file">
+    Run the init command from your project root:
 
-### Step 2: Deploy your changes
+    ```bash
+    npx susee init
+    ```
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    Susee prompts: `Is TypeScript project(y/n)`. Press **Enter** or type `y` to create `susee.config.ts`. Type `n` for a JavaScript config (`.js` or `.mjs` depending on your `package.json` `type` field).
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    The generated `susee.config.ts` looks like this:
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+    ```typescript susee.config.ts
+    import type { SuSeeConfig } from "susee";
 
-### Step 3: Go live
+    const config: SuSeeConfig = {
+      // Array of entry point objects.
+      // ----------------------------
+      entryPoints: [
+        // You can add more entry points for different export paths.
+        // NOTE: duplicate export paths are not allowed.
+        // --------------------------------------------
+        {
+          // (required) Entry file path.
+          entry: "src/index.ts", // replace with your entry file
+          // (required) Export path for this entry.
+          exportPath: ".", // "." stands for the main export path and can be set to "./foo", "./bar", etc.
+          // (optional) Output module formats ["commonjs"] or ["esm", "commonjs"], default: ["esm"].
+          // Uncomment the following line to edit.
+          //format: ["esm"],
+          // (optional) Rename duplicate declarations, default: true.
+          // Uncomment the following line to edit.
+          //renameDuplicates: true,
+          // (optional) Custom tsconfig.json path, default: undefined.
+          // Uncomment the following line to edit.
+          //tsconfigFilePath: undefined,
+          // (optional) Array of susee plugins, default: [].
+          // Uncomment the following line to edit.
+          //plugins: [],
+          // (optional) Warning messages, if it true and warning message exist(1), default: false.
+          // Uncomment the following line to edit.
+          //warning: false,
+        },
+      ],
+      // NOTE: the following options apply to all entry points.
+      // ----------------------------------------------------------
+      // (optional) Output directory, default: dist.
+      // Uncomment the following line to edit.
+      //outDir: "dist",
+      // (optional) Allow susee to update your package.json, default: false.
+      // Uncomment the following line to edit.
+      //allowUpdatePackageJson: false,
+    };
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    export default config;
+    ```
+  </Step>
 
-## Next steps
+  <Step title="Edit your entry point">
+    Update `entry` to point to your actual source file and set the output formats you need:
 
-Now that you have your docs running, explore these key features:
+    ```typescript susee.config.ts
+    import type { SuSeeConfig } from "susee";
 
-<CardGroup cols={2}>
+    const config: SuSeeConfig = {
+      entryPoints: [
+        {
+          entry: "src/index.ts",
+          exportPath: ".",
+          format: ["esm", "commonjs"],
+        },
+      ],
+      outDir: "dist",
+    };
 
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
+    export default config;
+    ```
+  </Step>
 
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
+  <Step title="Build your library">
+    Run Susee from your project root:
 
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
+    ```bash
+    npx susee
+    ```
 
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
+    Susee clears the output directory, then compiles and bundles each entry point. Build time is printed to stdout on completion.
+  </Step>
 
-</CardGroup>
+  <Step title="Inspect the output">
+    For `entry: "src/index.ts"` with `format: ["esm", "commonjs"]` and `outDir: "dist"`, you'll find:
 
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+    | File | Description |
+    |---|---|
+    | `dist/index.mjs` | ESM bundle |
+    | `dist/index.mjs.map` | ESM sourcemap |
+    | `dist/index.d.mts` | ESM type declarations |
+    | `dist/index.cjs` | CommonJS bundle |
+    | `dist/index.cjs.map` | CommonJS sourcemap |
+    | `dist/index.d.cts` | CommonJS type declarations |
+
+    <Note>
+      Declaration files (`.d.mts` / `.d.cts`) are only emitted when the TypeScript compiler produces them. Ensure `declaration: true` is set in your `tsconfig.json`.
+    </Note>
+  </Step>
+</Steps>
+
+## One-off builds without a config file
+
+For quick builds, use `susee build` directly — no config file needed:
+
+```bash
+npx susee build src/index.ts --outdir dist
+npx susee build src/index.ts --format commonjs --outdir dist
+npx susee build --entry src/index.ts --format esm --minify
+```
+
+<Tip>
+  See the [CLI build reference](/reference/cli-build) for all available flags and their defaults.
+</Tip>

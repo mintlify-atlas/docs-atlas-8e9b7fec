@@ -1,0 +1,208 @@
+---
+title: 'Troubleshooting common Susee build errors and issues'
+description: 'Diagnose and fix the most frequent Susee errors, from missing config files and empty entry point arrays to declaration file and output directory issues.'
+keywords: ['susee', 'troubleshooting', 'errors', 'build errors', 'debug', 'config']
+---
+
+This page covers the most common errors and unexpected behaviors you may encounter when using Susee, along with their causes and solutions. Each entry below describes the exact error message, what triggers it, and how to fix it.
+
+<AccordionGroup>
+  <Accordion title='"No susee.config file found"'>
+    **Error message**
+
+    ```
+    No susee.config file found
+    ```
+
+    **Cause**
+
+    You ran `npx susee` without a config file in the project root, and you did not pass a config object to `build()`. Susee searches for `susee.config.ts`, `susee.config.js`, and `susee.config.mjs` in the current working directory and exits when none are found.
+
+    **Solution**
+
+    Generate a config file with the `init` command:
+
+    ```bash
+    npx susee init
+    ```
+
+    This creates a `susee.config.ts` template in the project root that you can edit before running your build.
+  </Accordion>
+
+  <Accordion title='"No entry found... at least one entry required"'>
+    **Error message**
+
+    ```
+    No entry found in susee.config file or build options, at least one entry required
+    ```
+
+    **Cause**
+
+    The `entryPoints` array in your config or programmatic options is empty. Susee requires at least one entry point to build.
+
+    **Solution**
+
+    Add at least one entry point object to the `entryPoints` array:
+
+    ```typescript
+    const config: SuSeeConfig = {
+      entryPoints: [
+        {
+          entry: "src/index.ts",
+          exportPath: ".",
+          format: ["esm", "commonjs"],
+        },
+      ],
+    };
+    ```
+  </Accordion>
+
+  <Accordion title='"Duplicate export paths found"'>
+    **Error message**
+
+    ```
+    Duplicate export paths/path ("./foo") found in your susee.config file or build options,
+    that will error for bundled output
+    ```
+
+    **Cause**
+
+    Two or more entries in `entryPoints` share the same `exportPath`. Susee rejects this because duplicate export paths would cause output files to overwrite each other.
+
+    **Solution**
+
+    Ensure every entry point has a unique `exportPath`:
+
+    ```typescript
+    // Incorrect — two entries share "./utils"
+    entryPoints: [
+      { entry: "src/utils-a.ts", exportPath: "./utils", format: ["esm"] },
+      { entry: "src/utils-b.ts", exportPath: "./utils", format: ["esm"] },
+    ]
+
+    // Correct — each entry has a distinct exportPath
+    entryPoints: [
+      { entry: "src/utils-a.ts", exportPath: "./utils-a", format: ["esm"] },
+      { entry: "src/utils-b.ts", exportPath: "./utils-b", format: ["esm"] },
+    ]
+    ```
+  </Accordion>
+
+  <Accordion title='"Entry file X does not exist"'>
+    **Error message**
+
+    ```
+    Entry file src/missing.ts dose not exists.
+    ```
+
+    **Cause**
+
+    The `entry` path on one of your entry points does not resolve to an existing file. Susee checks each path against the filesystem before starting the build.
+
+    **Solution**
+
+    Verify the path is correct and is relative to the project root (the directory where you run `npx susee` or your build script):
+
+    ```typescript
+    entryPoints: [
+      {
+        // Make sure this file exists at <project-root>/src/index.ts
+        entry: "src/index.ts",
+        exportPath: ".",
+      },
+    ]
+    ```
+
+    Check that the file exists:
+
+    ```bash
+    ls src/index.ts
+    ```
+  </Accordion>
+
+  <Accordion title='"Required build options or susee config file at root"'>
+    **Error message**
+
+    ```
+    [Error] : Required build options or susee config file at root.
+              Use npx susee init to create config file.
+    ```
+
+    **Cause**
+
+    You called `build()` programmatically without passing an options object, and Susee could not find a config file in the project root. This is the programmatic equivalent of running `npx susee` with no config.
+
+    **Solution**
+
+    Either pass a config object to `build()`:
+
+    ```typescript
+    import { build, type SuSeeConfig } from "susee";
+
+    const config: SuSeeConfig = {
+      entryPoints: [
+        { entry: "src/index.ts", exportPath: ".", format: ["esm"] },
+      ],
+    };
+
+    await build(config);
+    ```
+
+    Or create a config file in the project root so `build()` can discover it automatically:
+
+    ```bash
+    npx susee init
+    ```
+  </Accordion>
+
+  <Accordion title="Build produces no declaration files">
+    **Cause**
+
+    Declaration files (`.d.mts`, `.d.cts`) are only emitted when the TypeScript compiler provides them. Susee writes declaration output conditionally:
+
+    ```typescript
+    if (compiled.dts) await files.writeFile(dtsFilePath, compiled.dts);
+    ```
+
+    If your `tsconfig.json` does not enable declarations, the compiler returns no `.dts` content and no declaration files are written.
+
+    **Solution**
+
+    Add `declaration: true` to your `tsconfig.json` (or to a custom tsconfig you point to via `tsconfigFilePath`):
+
+    ```json
+    {
+      "compilerOptions": {
+        "declaration": true,
+        "declarationMap": true
+      }
+    }
+    ```
+
+    <Tip>
+      If you use a per-entry tsconfig via `tsconfigFilePath`, make sure `declaration: true` is set there, not only in the root tsconfig.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="Output directory not cleared between builds">
+    **Cause**
+
+    Susee calls `files.clearFolder(outDir)` at the start of each `compile()` call. If you are not seeing stale files removed, it is likely because your build script is not reaching the `compile()` step — for example, due to a validation error that causes an early exit.
+
+    **Clarification**
+
+    Under normal operation, Susee **does** clear the output directory before writing new files. Any file that existed in `outDir` before the build will be removed. If you store non-build assets in `outDir`, move them elsewhere before running Susee.
+
+    ```typescript
+    // Susee clears this directory at the start of every build
+    const config: SuSeeConfig = {
+      outDir: "dist", // all contents removed before new files are written
+      entryPoints: [...],
+    };
+    ```
+
+    <Warning>
+      Do not store files you want to keep inside `outDir`. Susee removes its entire contents at the beginning of every build.
+    </Warning>
+  </Accordion>
+</AccordionGroup>

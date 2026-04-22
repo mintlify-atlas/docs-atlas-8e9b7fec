@@ -1,0 +1,120 @@
+---
+title: 'Output Formats: ESM and CommonJS Files from Susee'
+description: 'Understand the files Susee produces for each output format, how output directories are computed from exportPath, and when to choose ESM, CommonJS, or both.'
+keywords: ['susee', 'output formats', 'esm', 'commonjs', 'mjs', 'cjs', 'sourcemap', 'declarations', 'outDir']
+---
+
+Susee supports two output module formats: `"esm"` and `"commonjs"`. Each format produces a distinct set of files. This page explains what files are written for each format, how the output directory is computed, and when to choose each option.
+
+## Files produced per format
+
+For every entry point, Susee writes the following files depending on the requested formats:
+
+<Tabs>
+  <Tab title="ESM">
+    | File | Description |
+    | --- | --- |
+    | `<name>.mjs` | ES module bundle |
+    | `<name>.mjs.map` | Source map for the ESM bundle |
+    | `<name>.d.mts` | TypeScript declaration file for ESM consumers |
+
+    The `.d.mts` file is emitted only when the TypeScript compiler produces declaration output for the entry.
+  </Tab>
+  <Tab title="CommonJS">
+    | File | Description |
+    | --- | --- |
+    | `<name>.cjs` | CommonJS bundle |
+    | `<name>.cjs.map` | Source map for the CommonJS bundle |
+    | `<name>.d.cts` | TypeScript declaration file for CommonJS consumers |
+
+    The `.d.cts` file is emitted only when the TypeScript compiler produces declaration output for the entry.
+  </Tab>
+</Tabs>
+
+## Output directory rules
+
+The output directory for each entry point is determined by two values: `outDir` (top-level config) and `exportPath` (per entry point).
+
+| `exportPath` | Output directory formula | Example result |
+| --- | --- | --- |
+| `"."` | `outDir` | `dist` |
+| `"./utils"` | `outDir + exportPath.slice(1)` | `dist/utils` |
+| `"./foo/bar"` | `outDir + exportPath.slice(1)` | `dist/foo/bar` |
+
+<Info>
+  The default `outDir` is `"dist"` when not explicitly set in your config.
+</Info>
+
+## Build output matrix
+
+The table below shows exactly which files are written for each combination of entry path, export path, and format.
+
+| Entry | `exportPath` | Output directory | ESM files | CommonJS files |
+| --- | --- | --- | --- | --- |
+| `src/index.ts` | `"."` | `dist` | `index.mjs`, `index.mjs.map`, `index.d.mts` | `index.cjs`, `index.cjs.map`, `index.d.cts` |
+| `src/foo.ts` | `"./foo"` | `dist/foo` | `foo.mjs`, `foo.mjs.map`, `foo.d.mts` | `foo.cjs`, `foo.cjs.map`, `foo.d.cts` |
+
+<Note>
+  Declaration files (`.d.mts` / `.d.cts`) are emitted only when provided by the underlying compiler result. If your TypeScript configuration disables declaration output, these files will not be written.
+</Note>
+
+## Choosing a format
+
+<CardGroup cols={3}>
+  <Card title="ESM only" icon="bolt">
+    **Best for:** Modern packages targeting Node.js 12+ or bundlers like Vite and webpack.
+
+    Produces `.mjs` output that is natively importable with `import` syntax. No CJS wrapper is generated.
+  </Card>
+  <Card title="CommonJS only" icon="cube">
+    **Best for:** Legacy Node.js environments or tools that cannot consume ES modules.
+
+    Produces `.cjs` output compatible with `require()`. No ESM variant is generated.
+  </Card>
+  <Card title="Both formats" icon="layers">
+    **Best for:** Public packages consumed across many environments.
+
+    Produces both `.mjs` and `.cjs` output, giving consumers the format their toolchain prefers.
+  </Card>
+</CardGroup>
+
+## Dual-format example
+
+The following config produces both ESM and CommonJS output for the main export:
+
+```typescript
+import type { SuSeeConfig } from "susee";
+
+const config: SuSeeConfig = {
+  entryPoints: [
+    {
+      entry: "src/index.ts",
+      exportPath: ".",
+      format: ["esm", "commonjs"],
+    },
+  ],
+  outDir: "dist",
+};
+
+export default config;
+```
+
+This writes the following files to `dist/`:
+
+```
+dist/
+├── index.mjs        ← ES module bundle
+├── index.mjs.map    ← ESM source map
+├── index.d.mts      ← ESM type declarations
+├── index.cjs        ← CommonJS bundle
+├── index.cjs.map    ← CommonJS source map
+└── index.d.cts      ← CommonJS type declarations
+```
+
+## Source maps
+
+Susee always writes source map files (`.mjs.map` and `.cjs.map`) alongside each bundle. Source maps link lines in the minified or transpiled output back to the original TypeScript source, enabling accurate stack traces and debugger support.
+
+<Tip>
+  Source maps are written unconditionally — there is no option to disable them. If you publish to npm, consider adding `*.map` to your `.npmignore` if you do not want to ship them to consumers.
+</Tip>

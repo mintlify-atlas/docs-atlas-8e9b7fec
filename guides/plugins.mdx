@@ -1,0 +1,159 @@
+---
+title: 'Extending Susee builds with plugins'
+description: 'Learn how the Susee plugin system works, how to add post-process plugins to an entry point, and how to use the built-in terser minification plugin.'
+keywords: ['susee', 'plugins', 'terser', 'minify', 'post-process', 'SuseePlugin']
+---
+
+Susee supports a plugin system that lets you transform compiled output after the TypeScript compiler runs. Plugins are attached per entry point and execute as post-process steps on the generated code. This page covers the plugin interface, how plugins are executed, and how to use the built-in minification plugin.
+
+## Plugin interface
+
+Susee plugins take one of two shapes. You don't need to install any additional package — both shapes are plain objects or functions that match the expected structure.
+
+### SuseePlugin
+
+A plain object with three required fields:
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"post-process"` | Declares when the plugin runs. Currently only `"post-process"` is supported. |
+| `async` | `boolean` | When `true`, Susee awaits the result of `func`. |
+| `func` | `(code: string, entryFile: string) => string \| Promise<string>` | Receives the compiled code and entry file path, returns the transformed code. |
+
+### SuseePluginFunction
+
+A zero-argument function that returns a `SuseePlugin`. Susee calls the function automatically when it encounters this shape:
+
+```typescript
+const _plugin = typeof plugin === "function" ? plugin() : plugin;
+```
+
+## How plugins are executed
+
+After each compilation step (ESM or CommonJS), Susee iterates over the plugins attached to that entry point and runs any with `type === "post-process"`:
+
+```typescript
+for (const plugin of point.plugins) {
+  const _plugin = typeof plugin === "function" ? plugin() : plugin;
+  if (_plugin.type === "post-process") {
+    if (_plugin.async) {
+      compiledCode = await _plugin.func(compiledCode, entryFile);
+    } else {
+      compiledCode = _plugin.func(compiledCode, entryFile);
+    }
+  }
+}
+```
+
+<Note>
+  Plugins run once per format. If you build with `format: ["esm", "commonjs"]`, your plugin runs against both the ESM and CommonJS outputs separately.
+</Note>
+
+## Adding plugins to an entry point
+
+Pass plugins through the `plugins` array on an `EntryPoint`:
+
+```typescript
+import { build, type SuSeeConfig } from "susee";
+import { suseeTerser } from "@suseejs/terser-plugin";
+
+const config: SuSeeConfig = {
+  entryPoints: [
+    {
+      entry: "src/index.ts",
+      exportPath: ".",
+      format: ["esm", "commonjs"],
+      plugins: [suseeTerser],
+    },
+  ],
+  outDir: "dist",
+};
+
+await build(config);
+```
+
+You can mix multiple plugins in the array. They run in order, each receiving the output of the previous plugin:
+
+```typescript
+plugins: [pluginA, pluginB, pluginC]
+```
+
+## Built-in minification: @suseejs/terser-plugin
+
+Susee ships `@suseejs/terser-plugin` as a built-in dependency. It exposes `suseeTerser`, a `SuseePluginFunction` that minifies compiled output using Terser.
+
+### Using terser via config
+
+```typescript
+import { build, type SuSeeConfig } from "susee";
+import { suseeTerser } from "@suseejs/terser-plugin";
+
+const config: SuSeeConfig = {
+  entryPoints: [
+    {
+      entry: "src/index.ts",
+      exportPath: ".",
+      format: ["esm"],
+      plugins: [suseeTerser],
+    },
+  ],
+};
+
+await build(config);
+```
+
+### Using terser via the CLI
+
+Pass `--minify` to `susee build` to enable minification without modifying any config:
+
+```bash
+npx susee build src/index.ts --format esm --minify
+```
+
+<Note>
+  The `--minify` flag adds `suseeTerser` to the plugin list automatically. It is deduplicated, so you won't apply it twice if it's already in your config.
+</Note>
+
+## Writing a custom plugin
+
+Any object that has `type: "post-process"`, an `async` flag, and a `func` that transforms the compiled code string can be used as a plugin. You do not need to install any extra package — write the object directly in your build script.
+
+Here is a synchronous example that prepends a banner comment:
+
+```typescript
+const bannerPlugin = {
+  type: "post-process" as const,
+  async: false,
+  func: (code: string, _entryFile: string) => {
+    return `// Built with Susee\n${code}`;
+  },
+};
+```
+
+And an async example:
+
+```typescript
+const asyncPlugin = {
+  type: "post-process" as const,
+  async: true,
+  func: async (code: string, _entryFile: string) => {
+    // perform async transformation
+    return code;
+  },
+};
+```
+
+Pass the plugin object directly in `plugins`:
+
+```typescript
+plugins: [bannerPlugin, asyncPlugin]
+```
+
+Or wrap it in a factory function (a `SuseePluginFunction`):
+
+```typescript
+const makeBannerPlugin = () => bannerPlugin;
+
+// ...
+plugins: [makeBannerPlugin]
+```

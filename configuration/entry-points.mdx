@@ -1,0 +1,163 @@
+---
+title: 'Entry Points: Configuring Susee Bundle Targets'
+description: 'Full reference for the EntryPoint interface — configure source paths, export paths, output formats, TypeScript options, plugins, and duplicate handling.'
+keywords: ['susee', 'entry points', 'EntryPoint', 'exportPath', 'format', 'esm', 'commonjs', 'plugins', 'tsconfig']
+---
+
+Susee bundles each item in the `entryPoints` array independently. This page documents every field of the `EntryPoint` interface and explains how each one affects the output.
+
+## EntryPoint interface
+
+```typescript
+interface EntryPoint {
+  entry: string;                                      // required
+  exportPath: "." | `./${string}`;                    // required
+  format?: ("esm" | "commonjs")[];                    // default: ["esm"]
+  tsconfigFilePath?: string | undefined;              // default: undefined
+  renameDuplicates?: boolean;                         // default: true
+  plugins?: (SuseePlugin | SuseePluginFunction)[];    // default: []
+  warning?: boolean;                                  // default: false
+}
+```
+
+## Field reference
+
+<ParamField path="entry" type="string" required>
+  Path to the source file to bundle, relative to the project root.
+
+  ```typescript
+  entry: "src/index.ts"
+  ```
+
+  Susee resolves this path from the current working directory. The build exits with code `1` if the file does not exist.
+</ParamField>
+
+<ParamField path="exportPath" type='"." | `./\${string}`' required>
+  The package export path this bundle corresponds to. Accepts `"."` for the main export or a subpath string such as `"./utils"`.
+
+  This value determines the **output directory**:
+
+  | `exportPath` | Output directory |
+  | --- | --- |
+  | `"."` | `<outDir>` (e.g. `dist`) |
+  | `"./utils"` | `<outDir>/utils` (e.g. `dist/utils`) |
+  | `"./foo/bar"` | `<outDir>/foo/bar` (e.g. `dist/foo/bar`) |
+
+  The output file name is derived from the `entry` filename. For example, `entry: "src/index.ts"` with `exportPath: "."` produces `dist/index.mjs`.
+
+  <Warning>
+    Each entry point must have a unique `exportPath`. Susee rejects configurations with duplicate values and exits with code `1` before building.
+  </Warning>
+</ParamField>
+
+<ParamField path="format" type='("esm" | "commonjs")[]' default='["esm"]'>
+  Array of output module formats. Accepts `"esm"`, `"commonjs"`, or both.
+
+  | Value | Output files |
+  | --- | --- |
+  | `"esm"` | `.mjs`, `.mjs.map`, `.d.mts` |
+  | `"commonjs"` | `.cjs`, `.cjs.map`, `.d.cts` |
+
+  Duplicate values within the array are deduplicated automatically. See [Output formats](/configuration/output-formats) for a full breakdown of produced files.
+</ParamField>
+
+<ParamField path="tsconfigFilePath" type="string | undefined" default="undefined">
+  Path to a custom `tsconfig.json` file for this entry point's TypeScript compiler options.
+
+  Susee resolves the TypeScript configuration using the following priority order:
+
+  1. `tsconfigFilePath` — this field, if set
+  2. `tsconfig.json` in the project root directory
+  3. Susee's built-in default compiler options
+
+  Use this field when different parts of your package require different compiler settings, such as separate targets or `moduleResolution` strategies.
+</ParamField>
+
+<ParamField path="renameDuplicates" type="boolean" default="true">
+  Controls how Susee handles duplicate declarations encountered during bundling.
+
+  - `true` — Susee automatically renames conflicting declarations to avoid collisions in the output.
+  - `false` — Susee exits with code `1` if any duplicate declarations are found.
+
+  Leave this as `true` (the default) for most projects. Set it to `false` if you want strict guarantees that no name collisions exist in the source.
+</ParamField>
+
+<ParamField path="plugins" type="(SuseePlugin | SuseePluginFunction)[]" default="[]">
+  Array of Susee plugins to run as post-processing steps after bundling. Both plugin objects (`SuseePlugin`) and plugin factory functions (`SuseePluginFunction`) are accepted.
+
+  ```typescript
+  import { myPlugin } from "susee-plugin-example";
+
+  {
+    entry: "src/index.ts",
+    exportPath: ".",
+    plugins: [myPlugin()],
+  }
+  ```
+</ParamField>
+
+<ParamField path="warning" type="boolean" default="false">
+  When `true`, Susee surfaces bundler warning messages in the console output. When `false`, warnings are suppressed.
+
+  Enable this during development if you want visibility into potential issues detected by the underlying bundler.
+</ParamField>
+
+## Multi-entry example
+
+The following config defines two entry points: a main export and a `utils` subpath export with different format settings.
+
+```typescript
+import type { SuSeeConfig } from "susee";
+
+const config: SuSeeConfig = {
+  entryPoints: [
+    {
+      entry: "src/index.ts",
+      exportPath: ".",
+      format: ["esm", "commonjs"],
+    },
+    {
+      entry: "src/utils.ts",
+      exportPath: "./utils",
+      format: ["esm"],
+    },
+  ],
+  outDir: "dist",
+};
+
+export default config;
+```
+
+This produces the following output:
+
+```
+dist/
+├── index.mjs
+├── index.mjs.map
+├── index.d.mts
+├── index.cjs
+├── index.cjs.map
+├── index.d.cts
+└── utils/
+    ├── utils.mjs
+    ├── utils.mjs.map
+    └── utils.d.mts
+```
+
+<Note>
+  The `entry` filename (without extension) becomes the output filename. `src/utils.ts` with `exportPath: "./utils"` writes to `dist/utils/utils.mjs`, not `dist/utils/index.mjs`.
+</Note>
+
+## Format guidance
+
+<CardGroup cols={3}>
+  <Card title="ESM only" icon="bolt">
+    Target Node.js 12+ or bundlers. Best for modern packages that don't need CJS compatibility.
+  </Card>
+  <Card title="CommonJS only" icon="cube">
+    Legacy Node.js compatibility. Use when consumers cannot import ES modules.
+  </Card>
+  <Card title="Both formats" icon="layers">
+    Maximum compatibility. Recommended for public packages consumed across many environments.
+  </Card>
+</CardGroup>

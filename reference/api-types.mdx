@@ -1,0 +1,134 @@
+---
+title: "TypeScript types exported by Susee"
+description: "Full reference for SuSeeConfig, EntryPoint, and OutputFormat — the TypeScript types that define Susee's programmatic API and config file schema."
+---
+
+Susee exports two items from the `susee` package: the `build` function and the `SuSeeConfig` type. This page documents all TypeScript types used to configure Susee, sourced directly from `src/lib/suseeConfig.ts`.
+
+## `SuSeeConfig`
+
+The top-level configuration object passed to `build()` or exported from a config file.
+
+```typescript
+interface SuSeeConfig {
+  entryPoints: EntryPoint[];
+  outDir?: string;
+  allowUpdatePackageJson?: boolean;
+}
+```
+
+<ParamField path="entryPoints" type="EntryPoint[]" required>
+  Array of entry point objects. At least one entry is required. Duplicate `exportPath` values are rejected with exit code `1`.
+</ParamField>
+
+<ParamField path="outDir" type="string">
+  Root output directory for all built files. Default: `"dist"`
+</ParamField>
+
+<ParamField path="allowUpdatePackageJson" type="boolean">
+  When `true`, Susee updates `main`, `module`, and `types` fields in `package.json` after building. Default: `false`
+</ParamField>
+
+---
+
+## `EntryPoint`
+
+Describes a single source file to bundle and the export path it maps to in the package.
+
+```typescript
+interface EntryPoint {
+  entry: string;
+  exportPath: "." | `./${string}`;
+  format?: OutputFormat;
+  tsconfigFilePath?: string | undefined;
+  renameDuplicates?: boolean;
+  plugins?: (SuseePlugin | SuseePluginFunction)[];
+  warning?: boolean;
+}
+```
+
+<ParamField path="entry" type="string" required>
+  Path to the source file to bundle, relative to the project root. Example: `"src/index.ts"`
+</ParamField>
+
+<ParamField path="exportPath" type='"." | `"./${string}"`' required>
+  The package export path this entry corresponds to. Use `"."` for the main export and `"./foo"` for subpath exports. This also controls the output directory:
+  - `"."` → files go in `outDir` (e.g., `dist/`)
+  - `"./utils"` → files go in `outDir/utils` (e.g., `dist/utils/`)
+</ParamField>
+
+<ParamField path="format" type="OutputFormat">
+  Array of output formats to produce. Accepts `"esm"`, `"commonjs"`, or both. Default: `["esm"]`
+</ParamField>
+
+<ParamField path="tsconfigFilePath" type="string | undefined">
+  Path to a custom `tsconfig.json`. Susee applies options in priority order:
+  1. This custom path (if provided)
+  2. `tsconfig.json` at the project root (if present)
+  3. Susee's built-in compiler defaults
+
+  Default: `undefined`
+</ParamField>
+
+<ParamField path="renameDuplicates" type="boolean">
+  When `true`, Susee automatically renames duplicate declarations encountered during bundling. When `false`, Susee exits with code `1` if duplicates are found. Default: `true`
+</ParamField>
+
+<ParamField path="plugins" type="(SuseePlugin | SuseePluginFunction)[]">
+  Array of post-process plugins to run after TypeScript compilation. Plugins transform the compiled output string before it is written to disk. Default: `[]`
+</ParamField>
+
+<ParamField path="warning" type="boolean">
+  When `true`, enables bundler warnings during the build. Default: `false`
+</ParamField>
+
+---
+
+## `OutputFormat`
+
+```typescript
+type OutputFormat = ("commonjs" | "esm")[];
+```
+
+An array of one or both output format strings:
+
+| Value | Output files |
+|---|---|
+| `"esm"` | `.mjs`, `.mjs.map`, `.d.mts` |
+| `"commonjs"` | `.cjs`, `.cjs.map`, `.d.cts` |
+
+---
+
+## Complete example
+
+```typescript susee.config.ts
+import type { SuSeeConfig } from "susee";
+
+const config: SuSeeConfig = {
+  entryPoints: [
+    {
+      entry: "src/index.ts",
+      exportPath: ".",
+      format: ["esm", "commonjs"],
+      renameDuplicates: true,
+      tsconfigFilePath: undefined,
+      plugins: [],
+      warning: false,
+    },
+  ],
+  outDir: "dist",
+  allowUpdatePackageJson: false,
+};
+
+export default config;
+```
+
+---
+
+## Importing types
+
+```typescript
+import type { SuSeeConfig } from "susee";
+```
+
+`EntryPoint` and `OutputFormat` are not directly exported from the package — import `SuSeeConfig` and use `SuSeeConfig["entryPoints"][number]` if you need to reference the `EntryPoint` shape in your own code, or copy the interface definition.
